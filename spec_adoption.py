@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Postman API Ingestion Script
+Spec Adoption Script
 
 Automates API discovery by ingesting OpenAPI specs into Postman Spec Hub,
 generating collections with JWT auth, and syncing updates.
 
 Usage:
-    python postman_ingestion.py --spec resources/payment-refund-api-openapi.yaml
-    python postman_ingestion.py --spec spec.yaml --export ./exports/ --sync
+    uv run spec_adoption.py --spec specs/payment-refund-api-openapi.yaml
+    uv run spec_adoption.py --spec specs/my-api.yaml --export ./exports/ --sync
 """
 
 import argparse
@@ -363,15 +363,16 @@ class PostmanIngestion:
 
     def list_environments(self, workspace_id: str) -> list:
         """List environments in a workspace."""
-        result = self._request("GET", f"/environments?workspaceId={workspace_id}")
+        result = self._request("GET", f"/environments?workspace={workspace_id}")
         return result.get("environments", [])
 
     def find_environment_by_name(self, workspace_id: str, name: str) -> Optional[str]:
-        """Find an environment by name."""
+        """Find an environment by name. Returns uid for API operations."""
         envs = self.list_environments(workspace_id)
         for env in envs:
             if env.get("name") == name:
-                return env.get("id")
+                # Postman API uses uid for environment operations
+                return env.get("uid") or env.get("id")
         return None
 
     def create_environment(
@@ -392,12 +393,14 @@ class PostmanIngestion:
                 ],
             }
         }
-        result = self._request("POST", f"/environments?workspaceId={workspace_id}", json=payload)
-        env_id = result.get("environment", {}).get("id")
+        result = self._request("POST", f"/environments?workspace={workspace_id}", json=payload)
+        # Postman API returns 'uid' for environments, but may also return 'id'
+        env_id = result.get("environment", {}).get("uid") or result.get("environment", {}).get("id")
         if env_id:
             log.info(f"   Created environment: {name}")
         else:
-            log.warning(f"   Failed to create environment {name}: {result}")
+            log.error(f"   Failed to create environment {name}")
+            log.debug(f"   API response: {result}")
         return env_id
 
     def update_environment(self, env_id: str, name: str, base_url: str, api_version: str = "v2") -> None:
@@ -510,9 +513,9 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python postman_ingestion.py --spec resources/payment-refund-api.yaml
-  python postman_ingestion.py --spec spec.yaml --export ./exports/
-  WORKSPACE_ID=abc123 python postman_ingestion.py --spec spec.yaml --sync
+  uv run spec_adoption.py --spec specs/payment-refund-api-openapi.yaml
+  uv run spec_adoption.py --spec specs/my-api.yaml --export ./exports/
+  WORKSPACE_ID=abc123 uv run spec_adoption.py --spec specs/my-api.yaml --sync
         """,
     )
     parser.add_argument(
@@ -658,12 +661,8 @@ def main():
     log.info(f"   Time: {elapsed:.1f} seconds")
 
     if not args.no_export and args.export and exported_files:
-        log.info("# Run tests with Newman:")
-        safe_name = spec_name.lower().replace(" ", "-").replace(".", "-")
-        safe_name = "".join(c for c in safe_name if c.isalnum() or c == "-")
-        log.info(f"newman run {args.export}/{safe_name}-collection.json \\")
-        log.info(f"    -e {args.export}/env-dev.json \\")
-        log.info(f"    --reporters cli,junit")
+        log.info("# Run API tests via GitHub Actions:")
+        log.info("   gh workflow run run-api-tests.yml -f environment=dev")
 
 
 if __name__ == "__main__":

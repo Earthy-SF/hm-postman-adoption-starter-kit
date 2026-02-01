@@ -34,11 +34,11 @@ jobs:
         run: |
           # If manual dispatch with specific file
           if [ -n "${{ inputs.spec_file }}" ]; then
-            uv run python postman_ingestion.py --spec "${{ inputs.spec_file }}"
+            uv run spec_adoption.py --spec "${{ inputs.spec_file }}"
           else
             # Process all changed spec files
             for spec in specs/*.yaml specs/*.json; do
-              [ -f "$spec" ] && uv run python postman_ingestion.py --spec "$spec"
+              [ -f "$spec" ] && uv run spec_adoption.py --spec "$spec"
             done
           fi
 

@@ -54,16 +54,16 @@ Get your API key from: https://go.postman.co/settings/me/api-keys
 
 ```bash
 # Basic usage - creates new workspace
-uv run postman_ingestion.py --spec specs/payment-refund-api-openapi.yaml
+uv run spec_adoption.py --spec specs/payment-refund-api-openapi.yaml
 
 # Use existing workspace
-WORKSPACE_ID=abc123 uv run postman_ingestion.py --spec specs/my-api.yaml
+WORKSPACE_ID=abc123 uv run spec_adoption.py --spec specs/my-api.yaml
 
 # Export for CI/CD
-uv run postman_ingestion.py --spec specs/my-api.yaml --export ./exports/
+uv run spec_adoption.py --spec specs/my-api.yaml --export ./exports/
 
 # Force sync existing spec
-uv run postman_ingestion.py --spec specs/my-api.yaml --sync
+uv run spec_adoption.py --spec specs/my-api.yaml --sync
 ```
 
 ## Features
@@ -109,7 +109,7 @@ Each environment includes:
 Export collections and environments for Newman testing:
 
 ```bash
-python postman_ingestion.py --spec spec.yaml --export ./exports/
+uv run spec_adoption.py --spec specs/my-api.yaml --export ./exports/
 ```
 
 Output:
@@ -125,7 +125,7 @@ Output:
 ## CLI Reference
 
 ```
-usage: postman_ingestion.py [-h] --spec SPEC [--export DIR] [--sync]
+usage: spec_adoption.py [-h] --spec SPEC [--export DIR] [--sync]
 
 Ingest OpenAPI specs into Postman Spec Hub
 
@@ -136,9 +136,9 @@ options:
   --sync        Force sync of linked collections
 
 Examples:
-  python postman_ingestion.py --spec resources/payment-refund-api.yaml
-  python postman_ingestion.py --spec spec.yaml --export ./exports/
-  WORKSPACE_ID=abc123 python postman_ingestion.py --spec spec.yaml --sync
+  uv run spec_adoption.py --spec specs/payment-refund-api-openapi.yaml
+  uv run spec_adoption.py --spec specs/my-api.yaml --export ./exports/
+  WORKSPACE_ID=abc123 uv run spec_adoption.py --spec specs/my-api.yaml --sync
 ```
 
 ## Environment Variables
@@ -220,58 +220,20 @@ You can also manually run the workflow:
 2. Click **Run workflow**
 3. Enter the spec file path (e.g., `specs/payment-refund-api-openapi.yaml`)
 
-### Extended Workflow with Newman Testing
+### Run API Tests (Newman)
 
-For API testing, extend the workflow:
+A separate workflow runs Newman tests on demand:
 
-```yaml
-# .github/workflows/api-tests.yml
-name: API Tests
+1. Go to **Actions** → **Run API Tests (Newman)**
+2. Click **Run workflow**
+3. Select the spec file and target environment (dev, qa, uat, prod)
 
-on:
-  push:
-    paths:
-      - 'specs/**/*.yaml'
-  workflow_dispatch:
-
-jobs:
-  sync-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Setup Python
-        run: uv python install 3.14
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: Sync spec to Postman & Export
-        env:
-          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
-          WORKSPACE_ID: ${{ secrets.WORKSPACE_ID }}
-        run: |
-          uv run python postman_ingestion.py \
-            --spec specs/payment-refund-api-openapi.yaml \
-            --export ./exports/ \
-            --sync
-
-      - name: Run Newman tests
-        run: |
-          npx newman run exports/*-collection.json \
-            -e exports/env-dev.json \
-            --reporters cli,junit \
-            --reporter-junit-export results.xml
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: newman-results
-          path: results.xml
+Or trigger via CLI:
+```bash
+gh workflow run run-api-tests.yml -f spec_file=specs/payment-refund-api-openapi.yaml -f environment=dev
 ```
+
+Test results (JUnit XML + HTML report) are uploaded as artifacts.
 
 ## Scaling Strategy
 
@@ -315,7 +277,7 @@ export POSTMAN_API_KEY=your-key-here
 ### "Spec file not found"
 Verify the path exists and is readable:
 ```bash
-ls -la "resources/payment-refund-api-openapi (3).yaml"
+ls -la specs/payment-refund-api-openapi.yaml
 ```
 
 ### Rate Limiting
@@ -331,7 +293,7 @@ https://www.postman.com/workspace/{WORKSPACE_ID}
 
 ```
 hm-postman-adoption-starter-kit/
-├── postman_ingestion.py       # Main script
+├── spec_adoption.py           # Main script
 ├── pyproject.toml             # Python dependencies (uv)
 ├── .env                       # Your environment variables (gitignored)
 ├── .env.example               # Environment variable template
@@ -344,7 +306,8 @@ hm-postman-adoption-starter-kit/
 │   └── env-*.json
 ├── .github/
 │   └── workflows/
-│       └── sync-specs.yml     # GitHub Action for auto-sync
+│       ├── sync-specs.yml     # Auto-sync specs on push
+│       └── run-api-tests.yml  # Manual Newman test runner
 └── README.md                  # This file
 ```
 
