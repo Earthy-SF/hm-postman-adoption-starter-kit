@@ -1,0 +1,50 @@
+name: Sync API Specs to Postman
+
+on:
+  push:
+    paths:
+      - 'specs/**/*.yaml'
+      - 'specs/**/*.json'
+  workflow_dispatch:
+    inputs:
+      spec_file:
+        description: 'Spec file path (e.g., specs/payment-refund-api-openapi.yaml)'
+        required: true
+        type: string
+
+jobs:
+  sync-specs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Setup Python
+        run: uv python install 3.14
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Sync specs to Postman
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+          WORKSPACE_ID: ${{ secrets.WORKSPACE_ID }}
+        run: |
+          # If manual dispatch with specific file
+          if [ -n "${{ inputs.spec_file }}" ]; then
+            uv run python postman_ingestion.py --spec "${{ inputs.spec_file }}"
+          else
+            # Process all changed spec files
+            for spec in specs/*.yaml specs/*.json; do
+              [ -f "$spec" ] && uv run python postman_ingestion.py --spec "$spec"
+            done
+          fi
+
+      - name: Upload exports
+        uses: actions/upload-artifact@v4
+        with:
+          name: postman-exports
+          path: exports/
+          retention-days: 30

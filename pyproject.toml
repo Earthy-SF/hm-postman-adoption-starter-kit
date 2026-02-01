@@ -1,0 +1,11 @@
+[project]
+name = "hm-postman-adoption-starter-kit"
+version = "0.1.0"
+description = "Postman API Adoption Starter Kit - Automates spec ingestion, collection generation, and environment setup"
+requires-python = ">=3.14"
+dependencies = [
+    "coloredlogs>=15.0.1",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.1",
+    "requests>=2.31.0",
+]
