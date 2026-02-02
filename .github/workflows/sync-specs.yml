@@ -31,14 +31,16 @@ jobs:
         env:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
           WORKSPACE_ID: ${{ secrets.WORKSPACE_ID }}
+          SPEC_FILE: ${{ inputs.spec_file }}
         run: |
           # If manual dispatch with specific file
-          if [ -n "${{ inputs.spec_file }}" ]; then
-            uv run spec_adoption.py --spec "${{ inputs.spec_file }}"
+          if [ -n "$SPEC_FILE" ]; then
+            uv run spec_adoption.py --spec "$SPEC_FILE"
           else
-            # Process all changed spec files
+            # Process all spec files (nullglob prevents literal glob strings when no matches)
+            shopt -s nullglob
             for spec in specs/*.yaml specs/*.json; do
-              [ -f "$spec" ] && uv run spec_adoption.py --spec "$spec"
+              uv run spec_adoption.py --spec "$spec"
             done
           fi
 
