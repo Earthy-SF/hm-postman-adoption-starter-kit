@@ -4,8 +4,7 @@
 # uv
 uv.lock
 
-# Exported collections and environments
-exports/
+# Note: exports/ is tracked to include generated Postman collections in repo
 
 # Python
 __pycache__/

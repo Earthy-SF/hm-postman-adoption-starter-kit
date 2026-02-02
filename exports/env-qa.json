@@ -1,0 +1,45 @@
+{
+  "environment": {
+    "id": "68f359b8-d8a8-4f39-894e-5d563fac3933",
+    "name": "QA",
+    "owner": "52005890",
+    "createdAt": "2026-02-01T23:05:34.000Z",
+    "updatedAt": "2026-02-02T00:58:54.000Z",
+    "values": [
+      {
+        "key": "base_url",
+        "value": "https://api-qa.payments.example.com/v2",
+        "enabled": true
+      },
+      {
+        "key": "client_id",
+        "value": "",
+        "enabled": true
+      },
+      {
+        "key": "client_secret",
+        "value": "",
+        "enabled": true,
+        "type": "secret"
+      },
+      {
+        "key": "token_url",
+        "value": "https://auth.example.com/oauth2/token",
+        "enabled": true
+      },
+      {
+        "key": "jwt_token",
+        "value": "",
+        "enabled": true,
+        "type": "secret"
+      },
+      {
+        "key": "token_expiry",
+        "value": "",
+        "enabled": true
+      }
+    ],
+    "uid": "52005890-68f359b8-d8a8-4f39-894e-5d563fac3933",
+    "isPublic": false
+  }
+}
